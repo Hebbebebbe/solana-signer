@@ -1,7 +1,10 @@
 const express = require("express");
 const cors = require("cors");
-const bs58 = require("bs58").default;
+const bs58Module = require("bs58");
 const { Keypair, VersionedTransaction } = require("@solana/web3.js");
+
+// Fix für bs58 (funktioniert in ALLEN Node-Versionen)
+const bs58 = bs58Module.decode ? bs58Module : bs58Module.default;
 
 const app = express();
 app.use(cors());
@@ -19,10 +22,10 @@ if (!PRIVATE_KEY) {
 const secretKey = bs58.decode(PRIVATE_KEY);
 const keypair = Keypair.fromSecretKey(secretKey);
 
-// 🔒 SIGN ENDPOINT
+// SIGN ENDPOINT
 app.post("/sign", async (req, res) => {
   try {
-    // 🔐 API KEY CHECK
+    // API KEY CHECK
     if (req.headers["x-api-key"] !== API_KEY) {
       return res.status(401).json({ error: "Unauthorized" });
     }
@@ -38,39 +41,31 @@ app.post("/sign", async (req, res) => {
       Buffer.from(swapTransaction, "base64")
     );
 
-    // 🔒 OPTIONAL: Check ob deine Wallet beteiligt ist
+    // Sicherheitscheck: Wallet muss enthalten sein
     const isSignerIncluded = tx.message.staticAccountKeys.some(
       (key) => key.toBase58() === keypair.publicKey.toBase58()
     );
 
     if (!isSignerIncluded) {
-      return res.status(403).json({
-        error: "Transaction enthält nicht deine Wallet!"
-      });
+      return res.status(400).json({ error: "Wallet not in transaction" });
     }
 
-    // Signieren
+    // SIGNIEREN
     tx.sign([keypair]);
 
+    // zurückgeben
     const signedTx = Buffer.from(tx.serialize()).toString("base64");
 
-    return res.json({
-      signedTransaction: signedTx
-    });
+    res.json({ signedTransaction: signedTx });
 
   } catch (err) {
     console.error(err);
-    return res.status(500).json({ error: "Signer Fehler" });
+    res.status(500).json({ error: err.message });
   }
 });
 
-// HEALTHCHECK
-app.get("/", (req, res) => {
-  res.send("Signer läuft 🚀");
-});
-
-// PORT
+// SERVER START
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log("Signer läuft auf Port " + PORT);
+  console.log(🚀 Signer läuft auf Port ${PORT});
 });
