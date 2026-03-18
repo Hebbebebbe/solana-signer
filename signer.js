@@ -1,6 +1,6 @@
 const express = require("express");
 const cors = require("cors");
-const bs58 = require("bs58");
+const bs58 = require("bs58").default;
 const { Keypair, VersionedTransaction } = require("@solana/web3.js");
 
 const app = express();
