@@ -1,10 +1,7 @@
-import express from "express";
-import cors from "cors";
-import bs58 from "bs58";
-import {
-  Keypair,
-  VersionedTransaction
-} from "@solana/web3.js";
+const express = require("express");
+const cors = require("cors");
+const bs58 = require("bs58");
+const { Keypair, VersionedTransaction } = require("@solana/web3.js");
 
 const app = express();
 app.use(cors());
