@@ -1,45 +1,79 @@
-const express = require("express");
-const cors = require("cors");
-const bs58 = require("bs58").default;
-const { Keypair, VersionedTransaction } = require("@solana/web3.js");
+import express from "express";
+import cors from "cors";
+import bs58 from "bs58";
+import {
+  Keypair,
+  VersionedTransaction
+} from "@solana/web3.js";
 
 const app = express();
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: "1mb" }));
 
+// ENV
 const PRIVATE_KEY = process.env.PRIVATE_KEY;
+const API_KEY = process.env.API_KEY;
 
 if (!PRIVATE_KEY) {
   throw new Error("PRIVATE_KEY fehlt!");
 }
 
-const keypair = Keypair.fromSecretKey(bs58.decode(PRIVATE_KEY));
+// Wallet laden
+const secretKey = bs58.decode(PRIVATE_KEY);
+const keypair = Keypair.fromSecretKey(secretKey);
 
+// 🔒 SIGN ENDPOINT
 app.post("/sign", async (req, res) => {
   try {
-    const swapTransaction = req.body.swapTransaction;
-
-    if (!swapTransaction) {
-      return res.status(400).send("swapTransaction missing");
+    // 🔐 API KEY CHECK
+    if (req.headers["x-api-key"] !== API_KEY) {
+      return res.status(401).json({ error: "Unauthorized" });
     }
 
-    const txBuf = Buffer.from(swapTransaction, "base64");
-    const transaction = VersionedTransaction.deserialize(txBuf);
+    const { swapTransaction } = req.body;
 
-    transaction.sign([keypair]);
+    if (!swapTransaction) {
+      return res.status(400).json({ error: "Missing swapTransaction" });
+    }
 
-    const signedTx = Buffer.from(transaction.serialize()).toString("base64");
+    // Decode Transaction
+    const tx = VersionedTransaction.deserialize(
+      Buffer.from(swapTransaction, "base64")
+    );
 
-    res.json({ signedTransaction: signedTx });
+    // 🔒 OPTIONAL: Check ob deine Wallet beteiligt ist
+    const isSignerIncluded = tx.message.staticAccountKeys.some(
+      (key) => key.toBase58() === keypair.publicKey.toBase58()
+    );
+
+    if (!isSignerIncluded) {
+      return res.status(403).json({
+        error: "Transaction enthält nicht deine Wallet!"
+      });
+    }
+
+    // Signieren
+    tx.sign([keypair]);
+
+    const signedTx = Buffer.from(tx.serialize()).toString("base64");
+
+    return res.json({
+      signedTransaction: signedTx
+    });
 
   } catch (err) {
     console.error(err);
-    res.status(500).send("Signing error");
+    return res.status(500).json({ error: "Signer Fehler" });
   }
 });
 
-const PORT = process.env.PORT || 3000;
+// HEALTHCHECK
+app.get("/", (req, res) => {
+  res.send("Signer läuft 🚀");
+});
 
+// PORT
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log("Signer running on port " + PORT);
+  console.log("Signer läuft auf Port " + PORT);
 });
