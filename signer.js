@@ -65,6 +65,11 @@ app.post("/sign", async (req, res) => {
   }
 });
 
+// HEALTH CHECK
+app.get("/", (req, res) => {
+  res.send("OK");
+});
+
 // SERVER START
 const PORT = process.env.PORT || 3000;
 
