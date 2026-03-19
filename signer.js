@@ -65,7 +65,8 @@ app.post("/sign", async (req, res) => {
 });
 
 // SERVER START
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+´const PORT = process.env.PORT;
+
+app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Signer läuft auf Port ${PORT}`);
 });
