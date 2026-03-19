@@ -71,7 +71,7 @@ app.get("/", (req, res) => {
 });
 
 // SERVER START
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT;
 
 app.listen(PORT, "0.0.0.0", function () {
   console.log("Signer läuft auf Port " + PORT);
