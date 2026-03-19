@@ -1,10 +1,7 @@
 const express = require("express");
 const cors = require("cors");
-const bs58Module = require("bs58");
+const bs58 = require("bs58");
 const { Keypair, VersionedTransaction } = require("@solana/web3.js");
-
-// bs58 Fix (für alle Node-Versionen)
-const bs58 = bs58Module.decode ? bs58Module : bs58Module.default;
 
 const app = express();
 app.use(cors());
@@ -18,6 +15,10 @@ if (!PRIVATE_KEY) {
   throw new Error("PRIVATE_KEY fehlt!");
 }
 
+if (!API_KEY) {
+  throw new Error("API_KEY fehlt!");
+}
+
 // Wallet laden
 const secretKey = bs58.decode(PRIVATE_KEY);
 const keypair = Keypair.fromSecretKey(secretKey);
@@ -25,7 +26,7 @@ const keypair = Keypair.fromSecretKey(secretKey);
 // SIGN ENDPOINT
 app.post("/sign", async (req, res) => {
   try {
-    // API-Key prüfen
+    // API Key Check
     if (req.headers["x-api-key"] !== API_KEY) {
       return res.status(401).json({ error: "Unauthorized" });
     }
@@ -65,8 +66,8 @@ app.post("/sign", async (req, res) => {
 });
 
 // SERVER START
-const PORT = process.env.PORT;
+const PORT = process.env.PORT || 3000;
 
-app.listen(PORT, "0.0.0.0", () => {
+app.listen(PORT, "0.0.0.0", function () {
   console.log("Signer läuft auf Port " + PORT);
 });
